@@ -11,25 +11,24 @@ void setup(){
 
 }
 
-void loop(){
- int delayValue = analogRead(0);
-  Serial.print("Analog reading: ");
-  Serial.println(delayValue);
-  
-  int buttonState = digitalRead(button);
-  if(1 == buttonState){
 
+int delayValue(){
+  return analogRead(0);
+}
+int buttonState(){
+  return digitalRead(button);
+}
 
-
-    for(int i=13; i > 8; i--){
-      digitalWrite(i, HIGH);
-      delay(100);
-    }
-
-    for(int i=13; i > 8; i--){
-      digitalWrite(i, LOW);
-      delay(100);
+void switchLights(int state){
+  for(int i=13; i > 8; i--){
+    if(buttonState() == 1){
+      digitalWrite(i, state);
+      delay(delayValue());
     }
   }
+}
 
+void loop(){
+  switchLights(HIGH);
+  switchLights(LOW);
 }

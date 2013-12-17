@@ -26,12 +26,13 @@ void setup(){
 
 
 float distanceToObject(){
-  return ultrasonic.convert(ultrasonic.timing()), Ultrasonic::CM);
+  return ultrasonic.convert(ultrasonic.timing(), Ultrasonic::CM);
 }
 
 float alarmCm(){
- return 90.0;
+ return ((float) analogRead(0) /10);
 }
+
 
 void soundAlarm(){
   digitalWrite(7, HIGH);
@@ -44,11 +45,20 @@ void soundAlarm(){
   tone(5, 1500, 50);
   delay(50);
   digitalWrite(6, LOW);  
+  tone(5, 100, 50);
+  delay(100);
 }
+
+int lastRead = 0;
 
 void loop(){
   if (distanceToObject() < alarmCm()){
     soundAlarm();
+  }
+  
+  if (millis() - lastRead > 200){
+    lastRead = millis();
+    Serial.println(analogRead(0));
   }
 }
 

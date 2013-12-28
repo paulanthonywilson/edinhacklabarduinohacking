@@ -18,58 +18,78 @@ void setup(){
   }
   
  
-  Serial.println("Oh my");
+  Serial.println("********");
   
 }
 
 
-void steady_flash(int period){
-  Serial.println("steady");
-  int state = millis() % (period * 2) < period ? HIGH : LOW;
-  for (int i=lowest; i <= highest; i++){
-    digitalWrite(i, state);
-  }
-}
 
-void setRedGreen(int state){
-  for (int i = lowestRedGreen; i <= highestRedGreen; i++){
-    digitalWrite(i, state);
-  }
-}
-
-void occasional_yellow(){
-  Serial.println("occasional yellow");
-  setRedGreen(LOW);
-  int yellowState = (millis() / 1000) % 20 == 0 ? HIGH : LOW;
-  digitalWrite(yellow, yellowState);
-  
-}
-
-void flash_up(int period){
-  Serial.println("flash");
-  int timeslice = millis() / period;
-  int on_pin = (timeslice % 9) + 2;
-  for(int i = lowestRedGreen; i <= highestRedGreen; i++){
-    digitalWrite(i, i == on_pin ? HIGH : LOW);
-  }
-  
-  digitalWrite(yellow, on_pin % 2 == 0 ? HIGH: LOW);
-}
 
 float readCm() {
   return ultrasonic.convert(ultrasonic.timing(), Ultrasonic::CM);
 }
 
+int period;
+float cm;
+
+int steady_flash_state = LOW;
+void steady_flash(){
+  steady_flash_state = steady_flash_state == LOW ? HIGH : LOW;
+  for(int i = lowest; i <= highest; i++){
+    digitalWrite(i, steady_flash_state);
+  }
+}
+
+long last_change = 0;
+
+void (*action)();
+
+void flash(){
+  if(millis() - last_change > period){
+    (*action)();
+    last_change = millis();
+  }
+}
+
+
+int cylon_number = 0;
+int cylon_pin(){
+  if (cylon_number < 9) {
+    return cylon_number + 2;
+  } else {
+    return 19 - cylon_number;
+  }
+
+}
+void cylon(){
+  digitalWrite(cylon_pin(), LOW);
+  cylon_number = (cylon_number + 1) % 18;
+  digitalWrite(cylon_pin(), HIGH);
+  digitalWrite(yellow, cylon_number < 9 ? HIGH : LOW);
+}
+ 
+void darkenAll(){
+  for(int i = lowest; i <= highest; i++){
+    digitalWrite(i, LOW);
+  }
+}
+
+void set_action(void (*new_action)()){
+  if (new_action != action){
+    darkenAll();
+    action = new_action; 
+  }
+}
 
 void loop(){
-  float cm = readCm();
-  if (cm < 100){
-    flash_up(cm * 100);
-  } else if (cm < 150.0){
-    steady_flash(cm * 20);
-    
-  } else { 
-    occasional_yellow();
+  cm = readCm();
+  if(cm < 100.0){
+    period = max(cm * 5, 100);
+    set_action(cylon);
+  } else {
+    period = min(2000, cm * 10);
+    set_action(steady_flash);
   }
+  flash();
 
 }

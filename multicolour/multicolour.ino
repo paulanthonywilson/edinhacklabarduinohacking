@@ -1,4 +1,4 @@
-
+  
 
 #include <Ultrasonic.h>
 
@@ -11,9 +11,9 @@ Ultrasonic ultrasonic(TRIGGER_PIN, ECHO_PIN);
 #define GREEN 10
 #define BLUE 9
 
-#define GREEN_LIMIT 120.0
-#define AMBER_LIMIT 70.0
-#define WHITE_LIMIT 200.0
+#define GREEN_LIMIT 140.0
+#define AMBER_LIMIT 80.0
+#define RAINBOW_LIMIT 230.0
 
 
 void setup(){
@@ -28,9 +28,6 @@ void setup(){
 
 
 
-float cm_proximity(){
-  return ultrasonic.convert(ultrasonic.timing(), Ultrasonic::CM);
-}
 
 int counter = 0;
 
@@ -38,40 +35,52 @@ void write_colour(char colour_pin, char rgb_code){
   analogWrite(colour_pin, 255 - (rgb_code % 256));
 }
 
-float weight(float high, float low, float proximity){
-  return max(255, (proximity - low) / (high - low) * 255);
-}
 
 
-void green(float proximity){
+void green(){
   write_colour(GREEN, 255);
-  write_colour(RED, weight(WHITE_LIMIT, GREEN_LIMIT, proximity));
+  write_colour(RED, 0);
   write_colour(BLUE, 0);
 } 
 
-void amber(float proximity){
-  write_colour(GREEN, weight(GREEN_LIMIT, AMBER_LIMIT, proximity));
+void amber(){
+  write_colour(GREEN, 255);
   write_colour(RED, 255);
   write_colour(BLUE, 0);
 }
 
 
-void red(float proximity){
+void red(){
   write_colour(BLUE, 0);
   write_colour(GREEN, 0);
   write_colour(RED, 255);
 }
 
-void white(float proximity){
-  write_colour(BLUE, 255 - weight(3500, AMBER_LIMIT, proximity));
-  write_colour(GREEN, 255);
-  write_colour(RED, 255);
+long rainbow_colour = -1;
+void rainbow(){
+  if(rainbow_colour < 0) rainbow_colour = random(0,16777216);
+  int red = rainbow_colour / 65536;
+  int green = ((rainbow_colour - red) / 256) % 256;
+  int blue  = rainbow_colour % 256;
+  Serial.print(rainbow_colour);
+  Serial.print(" "); 
+  Serial.print(red);
+  Serial.print(" "); 
+  Serial.print(green);
+  Serial.print(" ");
+  Serial.print(blue);
+  Serial.println();
+  
+  
+  write_colour(BLUE, blue);
+  write_colour(GREEN, green);
+  write_colour(RED, red);
 }
 
 
 
-void (*colour_action)(float x);
-void set_colour(void (*colour_function)(float)){
+void (*colour_action)();
+void set_colour(void (*colour_function)()){
   colour_action = colour_function;
 }
 
@@ -87,54 +96,87 @@ void off(){
 
 
 double last_flash = 0.0;
-void flash(float proximity){
+bool is_on = true;
+void flash(){
+ 
   if(millis() - last_flash > 700.0){
-    off();
+    if(is_on){
+      off();
+      is_on = false;
+    }
   } else {
-    (colour_action)(proximity);
+    if(!is_on){
+      (colour_action)();
+      is_on = true;
+    }
   }
   if(millis() - last_flash > 1200.0){
     last_flash = millis();
+    rainbow_colour = -1;
   }
+ 
 }
 
 
 
+void playTone(int period, int duration)
+{
+// period is one cycle of tone
+// duration is how long the pulsing should last in milliseconds
+  int pulse = period / 2;
+  for (long i = 0; i < duration * 1000L; i += period )
+  {
+    digitalWrite(8, HIGH);
+    delayMicroseconds(pulse);
+    digitalWrite(8, LOW);
+    delayMicroseconds(pulse);
+  }
+}
 
-
-double last_change = 0;
-int tone_value = 400;
+double last_sound = -30000;
 void sound(){
-  if(millis() > last_change + 500.0){
-    last_change = millis();
-    tone_value = tone_value == 300 ? 800 : 300;
-    tone(8, tone_value, 500);
-    delay(500);
-    Serial.println(tone_value);
+  Serial.print("sound ");
+  Serial.println(millis() - last_sound);
+  if(millis() - last_sound > 5000){
+    for (int i=0; i < 5; i++){
+      playTone(100, 200);
+      playTone(400, 200);
+    }
+    last_sound = millis();
   }
 }
+
+
+double filtered_proximity = -1;
+double raw_proximity;
+
+const double proximity_k = 0.1;
+void detect_proximity(){
+  raw_proximity = ultrasonic.convert(ultrasonic.timing(), Ultrasonic::CM);
+  raw_proximity = min(300.0, raw_proximity);
+  if(filtered_proximity < 0) filtered_proximity = raw_proximity;
+  filtered_proximity = filtered_proximity + proximity_k * (raw_proximity - filtered_proximity);
+  
+}
+
+
 
 
 void loop(){
-  float proximity = cm_proximity();
-  //Serial.print(proximity);
- 
-  if (proximity > WHITE_LIMIT){
-    set_colour(white);
-    //Serial.println(" white");
-  } else if(proximity > GREEN_LIMIT){
+  detect_proximity();
+
+  if (filtered_proximity > RAINBOW_LIMIT){
+    set_colour(rainbow);
+  } else if(filtered_proximity > GREEN_LIMIT){
      set_colour(green);
-     //Serial.println(" green");
-  } else if(proximity > AMBER_LIMIT){
+  } else if(filtered_proximity > AMBER_LIMIT){
     set_colour(amber);
-    //Serial.println(" amber");
   } else {
     set_colour(red);
-    //Serial.println(" red");
   }
   
-  flash(proximity);
-  if (proximity < 50.0){
+  flash();
+  if (filtered_proximity < 50.0){
     sound();
   }
   

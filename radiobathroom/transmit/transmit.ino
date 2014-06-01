@@ -1,10 +1,10 @@
-#include <avr/sleep.h>
 #include <VirtualWire.h>
+#include <avr/sleep.h>
 
+#define DOOR_OPEN_MESSAGE "Bathroom door is open."
+#define DOOR_CLOSED_MESSAGE "Bathroom door is closed."
 
-int wakePin = 2;                 // pin used for waking up
-int sleepStatus = 0;             // variable to store a request for sleep
-int count = 0;                   // counter
+int wakePin = 2;
 
 void wakeUpNow() { }
 
@@ -23,7 +23,9 @@ void send (char *message) {
   Serial.println(message);
 }
 
+
 void sleepNow() {
+  Serial.println("About to sleep");
   set_sleep_mode(SLEEP_MODE_PWR_DOWN);
   sleep_enable();
   attachInterrupt(0,wakeUpNow, LOW);
@@ -41,6 +43,10 @@ long millisInState(){
   return millis() - millisEnteredState;
 }
 
+bool isNewToState(){
+  return millisInState() < 10000;
+}
+
 void setLoopState(void (*newState)()){
   if(loopState != newState){
     millisEnteredState = millis();
@@ -49,24 +55,29 @@ void setLoopState(void (*newState)()){
 }
 
 void doorOpenLoop(){
-  Serial.print("open ");
-  send("The bathroom door is open. Thank you.");
+  if(isNewToState()){ 
+    send(DOOR_OPEN_MESSAGE);
+    delay(250);
+  } else {
+    sleepNow();
+  }
 }
 void doorClosedLoop(){
-  Serial.print("closed ");
-  send("The bathroom door is closed. Thank you.");
+  if(isNewToState()){
+    send(DOOR_CLOSED_MESSAGE);
+    delay(250);
+  }
 }
 
 
-void loop() {
+
+void loop(){
   if(isDoorClosed()){
-    setLoopState(doorOpenLoop);
-  } else {
     setLoopState(doorClosedLoop);
+  } else {
+    setLoopState(doorOpenLoop);
   }
   (*loopState)();
-  Serial.print(millisInState());
-  Serial.print(" ");
-  Serial.println(isDoorClosed());
+  delay(100);
+  Serial.println("tick");
 }
-

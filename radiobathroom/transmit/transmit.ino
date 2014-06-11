@@ -1,8 +1,8 @@
 #include <VirtualWire.h>
 #include <avr/sleep.h>
 
-#define DOOR_OPEN_MESSAGE "Bathroom door is open."
-#define DOOR_CLOSED_MESSAGE "Bathroom door is closed."
+#define DOOR_OPEN_MESSAGE "b1e Bathroom is open."
+#define DOOR_CLOSED_MESSAGE "b1e Bathroom is closed."
 
 int wakePin = 2;
 

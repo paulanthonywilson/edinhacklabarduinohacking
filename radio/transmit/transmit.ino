@@ -26,21 +26,15 @@ void flashLed(){
 
 void led(){
   digitalWrite(13, millis() - flashStart < 200);
-//  Serial.println(millis() - flashStart < 500);
 }
 
-
+char message[VW_MAX_MESSAGE_LEN];
 void loop(){
   delay(50);
-  unsigned int cm = sonar.ping() / US_ROUNDTRIP_CM; 
-  Serial.println(cm);
-  if (cm < TRIGGER_DISTANCE) {
-    send("NEAR");
-    digitalWrite(13, HIGH);
-  } else {
-    send("FAR");
-    digitalWrite(13, LOW);
-  }
+  unsigned int cm = sonar.ping() / US_ROUNDTRIP_CM;
+  sprintf(message, "%5d", cm);
+  send(message);
+  digitalWrite(13, cm < TRIGGER_DISTANCE);
 
 
 }

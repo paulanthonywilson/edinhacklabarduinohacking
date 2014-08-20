@@ -8,13 +8,17 @@ char messageChr[VW_MAX_MESSAGE_LEN + 1];
 bool bathroomOpen = true;
 bool bathroomClosed = true;
 
+const int red = 13;
+const int green = 12;
+
+
 void setup() {
   Serial.begin(9600);
   Serial.println("Device is now ready");
   Serial.println(VW_MAX_MESSAGE_LEN);
   Serial.println("Device is definitely now ready");
-  pinMode(3, OUTPUT);
-  pinMode(4, OUTPUT);
+  pinMode(red, OUTPUT);
+  pinMode(green, OUTPUT);
   vw_setup(2000);
   vw_rx_start();
 
@@ -39,7 +43,7 @@ void loop() {
     Serial.println(bathroomOpen);
     Serial.println(bathroomClosed);
   } 
-  digitalWrite(3, bathroomClosed);
-  digitalWrite(4, bathroomOpen);
+  digitalWrite(red, bathroomClosed);
+  digitalWrite(green, bathroomOpen);
   
 }

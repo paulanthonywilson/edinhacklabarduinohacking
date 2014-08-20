@@ -29,12 +29,16 @@ void loop() {
       messageChr[i] = message[i];
     }
     messageChr[messageLength] = 0;
-    Serial.println(messageChr);
+    
+    int distanceCm = atoi(messageChr);
+    Serial.print(messageChr);
+    Serial.print(" ");
+    Serial.println(distanceCm);
     
     
-    if (strcmp("FAR", messageChr) == 0){
+    if (distanceCm > 150){
       digitalWrite(13, LOW);
-    } else if(strcmp("NEAR", messageChr) == 0) {
+    } else {
       digitalWrite(13, HIGH);
     }
   }
